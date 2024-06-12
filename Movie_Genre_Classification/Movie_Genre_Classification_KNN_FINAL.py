@@ -95,7 +95,6 @@ report=classification_report(y_test, y_pred, zero_division=0)
 accuracy=f"Accuracy Score: {accuracy_score(y_test,y_pred)}\n"
 print(report)
 print(accuracy)
-
 # Create Text File with Report and Accuracy
 with open(result_path,'w') as f:
     f.write("Classification Report:\n")
