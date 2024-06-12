@@ -5,39 +5,48 @@ from sklearn.pipeline import Pipeline
 from sklearn.metrics import classification_report, accuracy_score
 from sklearn.feature_extraction.text import TfidfVectorizer
 
+# Define file paths
+train_data_path = "Movie_Genre_Classification/train_data-sample.txt"
+train_data_csv_path = "Movie_Genre_Classification/train_data-sample.csv"
+test_data_path = "Movie_Genre_Classification/test_data-sample.txt"
+test_data_csv_path = "Movie_Genre_Classification/test_data-sample.csv"
+test_solutions_path = "Movie_Genre_Classification/test_data_solution-sample.txt"
+output_predictions_path = "Movie_Genre_Classification/test_data_with_predictions-sample.csv"
+original_vs_predicted_path = "Movie_Genre_Classification/original_vs_predicted-sample.csv"
+
 # Reading training data from the text file
-movie_classification_train = pd.read_csv("Movie_Genre_Classification/train_data.txt", sep=' \:\:\: ', header=None, engine='python')
+movie_classification_train = pd.read_csv(train_data_path, sep=' \:\:\: ', header=None, engine='python')
 
 # Adding column headings
 movie_classification_train.columns = ['ID', 'TITLE', 'GENRE', 'DESCRIPTION']
 
 # Storing the dataframe into a CSV file
-movie_classification_train.to_csv('Movie_Genre_Classification/train_data.csv', index=None)
+movie_classification_train.to_csv(train_data_csv_path, index=None)
 
 # Reading test data from the text file
-movie_classification_test = pd.read_csv("Movie_Genre_Classification/test_data.txt", sep=' \:\:\: ', header=None, engine='python')
+movie_classification_test = pd.read_csv(test_data_path, sep=' \:\:\: ', header=None, engine='python')
 
 # Adding column headings
 movie_classification_test.columns = ['ID', 'TITLE', 'DESCRIPTION']
 
 # Storing the dataframe into a CSV file
-movie_classification_test.to_csv('Movie_Genre_Classification/test_data.csv', index=None)
+movie_classification_test.to_csv(test_data_csv_path, index=None)
 
 # Reading test solution data from the text file
-test_solutions = pd.read_csv("Movie_Genre_Classification/train_data.txt", sep=' \:\:\: ', header=None, engine='python')
+test_solutions = pd.read_csv(test_solutions_path, sep=' \:\:\: ', header=None, engine='python')
 
 # Adding column headings
 test_solutions.columns = ['ID', 'TITLE', 'GENRE', 'DESCRIPTION']
 
 # Reading the stored CSV files to verify the data
-df1 = pd.read_csv('Movie_Genre_Classification/train_data.csv')
+df1 = pd.read_csv(train_data_csv_path)
 print(df1.shape)
 print(df1.head())
 
 # Checking the distribution of genres
 print(df1['GENRE'].value_counts())
 
-df2 = pd.read_csv('Movie_Genre_Classification/test_data.csv')
+df2 = pd.read_csv(test_data_csv_path)
 print(df2.shape)
 print(df2.head())
 
@@ -56,12 +65,19 @@ test_solutions['genre_num'] = test_solutions['GENRE'].map(genre_mapping)
 print(df1.head())
 print(test_solutions.head())
 
+# Combining TITLE and DESCRIPTION for training and test datasets
+df1['TEXT'] = df1['TITLE'] + " " + df1['DESCRIPTION']
+df2['TEXT'] = df2['TITLE'] + " " + df2['DESCRIPTION']
+
 # Preparing the train and test datasets
-X_train = df1["DESCRIPTION"]
+X_train = df1["TEXT"]
 y_train = df1['genre_num']
 
-X_test = df2["DESCRIPTION"]
+X_test = df2["TEXT"]
 y_test = test_solutions['genre_num']
+
+# Ensuring the lengths of y_test and y_pred match by slicing test_solutions to match the length of df2
+test_solutions = test_solutions.loc[test_solutions['ID'].isin(df2['ID'])]
 
 # Building and training the classification model
 clf = Pipeline([
@@ -84,7 +100,15 @@ df2['predicted_genre_num'] = y_pred
 inverse_genre_mapping = {v: k for k, v in genre_mapping.items()}
 df2['predicted_genre'] = df2['predicted_genre_num'].map(inverse_genre_mapping)
 
-df2.to_csv('Movie_Genre_Classification/test_data_with_predictions.csv', index=None)
+df2.to_csv(output_predictions_path, index=None)
+
+# Creating a new dataframe for title, original genre, and predicted genre
+original_vs_predicted = df2[['TITLE']].copy()
+original_vs_predicted['original_genre'] = test_solutions['GENRE'].reset_index(drop=True)
+original_vs_predicted['predicted_genre'] = df2['predicted_genre']
+
+# Storing the original vs predicted genres to a new CSV file
+original_vs_predicted.to_csv(original_vs_predicted_path, index=None)
 
 # Displaying the results
-print(df2.head())
+print(original_vs_predicted.head())
